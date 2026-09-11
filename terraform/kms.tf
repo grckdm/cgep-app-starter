@@ -2,11 +2,11 @@
 #
 # CMK(s) you own, for bringing the starter's data stores and the evidence
 # vault under customer-managed encryption. Closes the "not under customer
-# custody" half of GAP-01 / GAP-02 — the *wiring* of this key onto the
+# custody" half of GAP-01 / GAP-02, the *wiring* of this key onto the
 # starter's resources happens in hardening.tf, not here.
 
 resource "aws_kms_key" "grc" {
-  description             = "Acme Health capstone CMK — workload + evidence encryption"
+  description             = "Acme Health capstone CMK: workload + evidence encryption"
   deletion_window_in_days = 30
   enable_key_rotation     = true
 
@@ -22,5 +22,5 @@ resource "aws_kms_alias" "grc" {
 
 output "kms_key_arn" {
   value       = aws_kms_key.grc.arn
-  description = "CMK ARN — reference this from hardening.tf and the evidence vault."
+  description = "CMK ARN. Reference this from hardening.tf and the evidence vault."
 }

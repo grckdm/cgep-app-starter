@@ -1,6 +1,6 @@
 # terraform/gap02_dynamodb_override.tf
 #
-# GAP-02 — DynamoDB submissions table: AWS-owned key, not your CMK.
+# GAP-02, DynamoDB submissions table: AWS-owned key, not your CMK.
 # SOC 2: CC6.1
 #
 # server_side_encryption isn't a standalone resource type, so it can't be

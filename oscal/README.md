@@ -14,8 +14,8 @@ mkdir -p .trestle-work && cd .trestle-work
 trestle init
 cp ../oscal/components/acme-health-capstone.json component-definitions/acme-health-capstone/component-definition.json
 cp ../oscal/profiles/acme-health-capstone-profile.json profiles/acme-health-capstone-profile/profile.json
-trestle validate -a component-definition -n acme-health-capstone
-trestle validate -a profile -n acme-health-capstone-profile
+trestle validate -t component-definition -n acme-health-capstone
+trestle validate -t profile -n acme-health-capstone-profile
 ```
 
 Both must report `VALID` before submission. Copy the validated files back

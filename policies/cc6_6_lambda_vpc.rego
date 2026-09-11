@@ -26,7 +26,7 @@ deny contains msg if {
 	r.name == "intake"
 	not has_vpc_config(r)
 	msg := sprintf(
-		"[CC6.6] %s: must have a vpc_config block with at least one subnet — running in the default Lambda environment does not satisfy this control.",
+		"[CC6.6] %s: must have a vpc_config block with at least one subnet. Running in the default Lambda environment does not satisfy this control.",
 		[r.address],
 	)
 }

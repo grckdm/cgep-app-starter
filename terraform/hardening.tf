@@ -3,7 +3,7 @@
 # THIS FILE IS THE CAPSTONE. Everything above (kms.tf, evidence-vault.tf,
 # cloudtrail.tf, oidc-trust.tf) is plumbing you could get from any of the
 # labs. This is the part where you close GAP-01..08 from GAPS.md against
-# your declared framework (SOC 2 TSC) and it's on you to write it —
+# your declared framework (SOC 2 TSC) and it's on you to write it,
 # that's the actual grading surface for Layer 1 + half of Layer 2.
 #
 # Two mechanisms are available; the brief lets you mix them:
@@ -18,7 +18,7 @@
 #   2. A Terraform *override file* (a file whose name ends in
 #      `_override.tf`) containing a resource block with the SAME
 #      type + name as one in ../main.tf. Terraform merges it into the
-#      original resource's config at plan time — this is how you add a
+#      original resource's config at plan time, this is how you add a
 #      `vpc_config` block to `aws_lambda_function.intake` or tighten
 #      `aws_iam_role_policy.lambda_inline` without hand-editing the
 #      starter's main.tf (which the brief wants left runnable/intact).
@@ -26,11 +26,11 @@
 #
 # For each gap below: decide new-resource vs override, then write it.
 # Delete the TODO comment once the block is real. Cite the SOC 2 control
-# in a comment above each fix — your OSCAL component and Rego policies
+# in a comment above each fix, your OSCAL component and Rego policies
 # need to point at the same control IDs, so decide the mapping here first.
 
 ######################################################################
-# GAP-01 — S3 uploads bucket: SSE-S3 default, not SSE-KMS with your CMK.
+# GAP-01, S3 uploads bucket: SSE-S3 default, not SSE-KMS with your CMK.
 # SOC 2: CC6.1
 ######################################################################
 resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
@@ -45,7 +45,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
 }
 
 ######################################################################
-# GAP-02 — DynamoDB submissions table: AWS-owned key, not your CMK.
+# GAP-02, DynamoDB submissions table: AWS-owned key, not your CMK.
 # SOC 2: CC6.1
 #
 # Implemented in gap02_dynamodb_override.tf (Terraform override files only
@@ -55,7 +55,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
 # Lambda role now needs explicit KMS permissions: unlike AWS-owned key
 # encryption, a customer-managed key requires the calling principal to
 # have kms:Decrypt / kms:GenerateDataKey on that key for both DynamoDB
-# PutItem and S3 PutObject to succeed (found by testing after apply —
+# PutItem and S3 PutObject to succeed (found by testing after apply,
 # the app returned 500s on AccessDeniedException: kms:Decrypt until
 # this was added).
 ######################################################################
@@ -77,7 +77,7 @@ resource "aws_iam_role_policy" "lambda_kms_access" {
 }
 
 ######################################################################
-# GAP-03 — S3 uploads bucket: no deny-non-TLS bucket policy.
+# GAP-03, S3 uploads bucket: no deny-non-TLS bucket policy.
 # SOC 2: CC6.7
 ######################################################################
 resource "aws_s3_bucket_policy" "uploads" {
@@ -100,7 +100,7 @@ resource "aws_s3_bucket_policy" "uploads" {
 }
 
 ######################################################################
-# GAP-04 — S3 uploads bucket: no versioning.
+# GAP-04, S3 uploads bucket: no versioning.
 # SOC 2: A1.2
 ######################################################################
 resource "aws_s3_bucket_versioning" "uploads" {
@@ -111,10 +111,10 @@ resource "aws_s3_bucket_versioning" "uploads" {
 }
 
 ######################################################################
-# GAP-05 — Lambda not deployed inside the starter's VPC.
+# GAP-05, Lambda not deployed inside the starter's VPC.
 # SOC 2: CC6.6
 #
-# The starter's private subnets have no route table at all — they fall
+# The starter's private subnets have no route table at all, they fall
 # back to the VPC's implicit default route table, which Gateway VPC
 # endpoints can't be safely associated with here. So this creates an
 # explicit private route table first, associates the private subnets
@@ -123,7 +123,7 @@ resource "aws_s3_bucket_versioning" "uploads" {
 #
 # Running in a VPC also requires the Lambda execution role to manage
 # ENIs (CreateNetworkInterface / DescribeNetworkInterfaces /
-# DeleteNetworkInterface) — the starter's role only has
+# DeleteNetworkInterface), the starter's role only has
 # AWSLambdaBasicExecutionRole attached, which doesn't cover this.
 ######################################################################
 
@@ -177,18 +177,18 @@ resource "aws_security_group" "lambda" {
 
 # GAP-05 continued: the Lambda's vpc_config (placing it in the private
 # subnets behind the security group above) is implemented in
-# gap05_06_lambda_override.tf — same naming-convention constraint as
+# gap05_06_lambda_override.tf, same naming-convention constraint as
 # GAP-02. GAP-06's Lambda changes land in the same override file since
 # both target aws_lambda_function.intake.
 
 ######################################################################
-# GAP-06 — Lambda: no reserved concurrency, no DLQ, no X-Ray.
+# GAP-06, Lambda: no reserved concurrency, no DLQ, no X-Ray.
 # SOC 2: CC7.2
 #
 # dead_letter_config / tracing_config additions to aws_lambda_function.
 # intake live in gap05_06_lambda_override.tf alongside GAP-05's vpc_config,
 # since both target the same resource. reserved_concurrent_executions is
-# NOT set — this account's total Lambda concurrency limit is 10, below
+# NOT set, this account's total Lambda concurrency limit is 10, below
 # the threshold where any reservation is possible (AWS requires >=10
 # unreserved account-wide). Documented as a known constraint in
 # WRITEUP.md, not silently dropped.
@@ -222,23 +222,23 @@ resource "aws_iam_role_policy" "lambda_observability" {
 }
 
 ######################################################################
-# GAP-07 — Lambda IAM role: dynamodb:* and s3:* (over-broad).
+# GAP-07, Lambda IAM role: dynamodb:* and s3:* (over-broad).
 # SOC 2: CC6.3
 #
 # Implemented in gap07_iam_override.tf (overrides aws_iam_role_policy.
-# lambda_inline — same naming-convention constraint as GAP-02/05/06).
+# lambda_inline, same naming-convention constraint as GAP-02/05/06).
 # handler.py only ever calls dynamodb:PutItem and s3:PutObject.
 ######################################################################
 
 ######################################################################
-# GAP-08 — API Gateway: no access logging, no throttling, no WAF.
+# GAP-08, API Gateway: no access logging, no throttling, no WAF.
 # SOC 2: CC7.2
 #
 # access_log_settings / default_route_settings on aws_apigatewayv2_stage.
 # default live in gap08_apigw_override.tf (same naming-convention
 # constraint as GAP-02/05/06/07).
 #
-# WAF is scoped out here (optional per GAPS.md) — record the reasoning
+# WAF is scoped out here (optional per GAPS.md), record the reasoning
 # for that call in WRITEUP.md, don't leave it undefended.
 ######################################################################
 
@@ -248,7 +248,7 @@ resource "aws_cloudwatch_log_group" "apigw_access" {
 }
 
 # HTTP API access logging requires the log group's resource policy to
-# explicitly allow the API Gateway service principal to write to it —
+# explicitly allow the API Gateway service principal to write to it,
 # an IAM identity policy on the Lambda/account isn't sufficient here.
 resource "aws_cloudwatch_log_resource_policy" "apigw_access" {
   policy_name = "${local.name_prefix}-apigw-access-logs"

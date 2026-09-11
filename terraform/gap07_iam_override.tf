@@ -1,6 +1,6 @@
 # terraform/gap07_iam_override.tf
 #
-# GAP-07 — SOC 2 CC6.3. Replaces main.tf's dynamodb:* / s3:* wildcard
+# GAP-07, SOC 2 CC6.3. Replaces main.tf's dynamodb:* / s3:* wildcard
 # actions with the specific actions handler.py actually calls
 # (dynamodb.Table(...).put_item, s3.put_object), same resource scope
 # main.tf already used.
