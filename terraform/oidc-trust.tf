@@ -287,6 +287,16 @@ resource "aws_iam_role_policy" "grc_gate_evidence_upload" {
         Effect   = "Allow"
         Action   = ["s3:PutObject", "s3:PutObjectRetention", "s3:GetObject"]
         Resource = "${aws_s3_bucket.evidence_vault.arn}/*"
+      },
+      {
+        # Same gotcha as the Lambda's data-plane calls (GAP-01/02):
+        # the evidence vault is SSE-KMS encrypted with the same CMK, so
+        # PutObject/GetObject need explicit KMS permissions beyond the
+        # S3 actions above — an S3-only grant isn't sufficient.
+        Sid      = "EvidenceVaultKmsAccess"
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
+        Resource = aws_kms_key.grc.arn
       }
     ]
   })
