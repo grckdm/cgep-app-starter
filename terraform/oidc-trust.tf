@@ -16,12 +16,32 @@ variable "github_org" {
 }
 
 variable "github_repo" {
-  type    = string
+  type = string
   # The fork kept the original starter repo's name — only the local
   # clone directory is "cgep-capstone". This must match the actual
   # GitHub repo or the OIDC trust policy's `sub` condition never matches
   # the token GitHub Actions sends, and AssumeRoleWithWebIdentity fails.
   default = "cgep-app-starter"
+}
+
+# GitHub's OIDC subject claim now includes immutable numeric IDs appended
+# to the owner and repo name — "repo:OWNER@ownerID/REPO@repoID:ref:...",
+# not the plain "repo:OWNER/REPO:..." most docs/tutorials still show. This
+# is a real security hardening (a renamed/transferred repo can't inherit
+# another repo's trust via name reuse), but it means a plain org/repo
+# StringLike pattern silently never matches and AssumeRoleWithWebIdentity
+# fails with "Not authorized" (discovered by decoding the actual token
+# GitHub sent in a run, not from documentation). Confirmed via a run
+# against this exact repo:
+#   sub = "repo:grckdm@44270347/cgep-app-starter@1363237393:ref:refs/heads/main"
+variable "github_owner_id" {
+  type    = string
+  default = "44270347"
+}
+
+variable "github_repo_id" {
+  type    = string
+  default = "1363237393"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -41,7 +61,9 @@ resource "aws_iam_role" "grc_gate" {
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
-        StringLike   = { "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*" }
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}:*"
+        }
       }
     }]
   })
