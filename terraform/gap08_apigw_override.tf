@@ -1,9 +1,9 @@
 # terraform/gap08_apigw_override.tf
 #
-# GAP-08 — SOC 2 CC7.2. Adds access logging (to the log group + resource
+# GAP-08, SOC 2 CC7.2. Adds access logging (to the log group + resource
 # policy defined in hardening.tf) and per-route throttling to the
 # $default stage. Values are conservative starting points for a low-
-# volume intake API — revisit under real load testing.
+# volume intake API, revisit under real load testing.
 resource "aws_apigatewayv2_stage" "default" {
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.apigw_access.arn

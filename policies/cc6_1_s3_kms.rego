@@ -4,7 +4,7 @@
 # description: >
 #   GAP-01: aws_s3_bucket.uploads must have an
 #   aws_s3_bucket_server_side_encryption_configuration whose sse_algorithm
-#   is "aws:kms" referencing our CMK — not the SSE-S3 default.
+#   is "aws:kms" referencing our CMK, not the SSE-S3 default.
 # custom:
 #   framework: soc2
 #   gap: GAP-01
@@ -21,7 +21,7 @@ import rego.v1
 deny contains msg if {
 	uploads_bucket_exists
 	not has_kms_encryption
-	msg := "[CC6.1] aws_s3_bucket.uploads must be encrypted with SSE-KMS using the customer CMK (aws_kms_key.grc) — SSE-S3 or no encryption configuration does not satisfy this control."
+	msg := "[CC6.1] aws_s3_bucket.uploads must be encrypted with SSE-KMS using the customer CMK (aws_kms_key.grc). SSE-S3 or no encryption configuration does not satisfy this control."
 }
 
 uploads_bucket_exists if {

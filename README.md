@@ -19,8 +19,13 @@ opa test ./policies
 ./scripts/verify-evidence.sh <run_id> --vault <evidence-vault-bucket-name>
 # expect: CHAIN INTACT for run <run_id>
 
-# 4. OSCAL
-cd .trestle-work && trestle validate -a component-definition -n acme-health-capstone
+# 4. OSCAL (see oscal/README.md for the full explanation)
+mkdir -p .trestle-work && cd .trestle-work && trestle init
+mkdir -p component-definitions/acme-health-capstone profiles/acme-health-capstone-profile
+cp ../oscal/components/acme-health-capstone.json component-definitions/acme-health-capstone/component-definition.json
+cp ../oscal/profiles/acme-health-capstone-profile.json profiles/acme-health-capstone-profile/profile.json
+trestle validate -t component-definition -n acme-health-capstone
+trestle validate -t profile -n acme-health-capstone-profile
 ```
 
 See `WRITEUP.md` for design decisions and control coverage.

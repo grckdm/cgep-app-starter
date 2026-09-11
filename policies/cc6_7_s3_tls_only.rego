@@ -18,12 +18,12 @@ import rego.v1
 
 # KNOWN LIMITATION: this reads planned_values.values.policy, the resolved
 # JSON string, because the Deny/Condition content can only be inspected
-# after jsonencode() has been evaluated — input.configuration only exposes
+# after jsonencode() has been evaluated, input.configuration only exposes
 # a flat list of referenced addresses for a jsonencode() expression, not
 # its structure. Since the policy embeds aws_s3_bucket.uploads.arn, the
 # WHOLE jsonencode() string is "known after apply" (and absent from
 # planned_values) on a from-scratch plan where the bucket doesn't exist
-# yet — this policy can only evaluate against a plan for an
+# yet, this policy can only evaluate against a plan for an
 # already-applied stack. That matches this project's actual operating
 # model (grc-gate.yml gates *changes* to a running stack; the initial
 # bootstrap apply is run manually, not through the gate), but is a real

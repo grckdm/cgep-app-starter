@@ -3,11 +3,11 @@
 # Keyless GitHub Actions -> AWS auth for the grc-gate pipeline.
 # Adapted from the Lab 4.3 oidc-trust primitive. Unlike that primitive
 # (ReadOnlyAccess only), THIS role has to actually run `terraform apply`
-# and write to the evidence vault — so the permissions policy below is
+# and write to the evidence vault, so the permissions policy below is
 # a TODO, not a copy-paste.
 #
 # Trust is scoped to var.github_repo. Never loosen the `sub` condition
-# to a wildcard repo/org — that's the same lesson as GAP-07 (least
+# to a wildcard repo/org, that's the same lesson as GAP-07 (least
 # privilege), applied to who can assume this role at all.
 
 variable "github_org" {
@@ -17,7 +17,7 @@ variable "github_org" {
 
 variable "github_repo" {
   type = string
-  # The fork kept the original starter repo's name — only the local
+  # The fork kept the original starter repo's name, only the local
   # clone directory is "cgep-capstone". This must match the actual
   # GitHub repo or the OIDC trust policy's `sub` condition never matches
   # the token GitHub Actions sends, and AssumeRoleWithWebIdentity fails.
@@ -25,7 +25,7 @@ variable "github_repo" {
 }
 
 # GitHub's OIDC subject claim now includes immutable numeric IDs appended
-# to the owner and repo name — "repo:OWNER@ownerID/REPO@repoID:ref:...",
+# to the owner and repo name, "repo:OWNER@ownerID/REPO@repoID:ref:...",
 # not the plain "repo:OWNER/REPO:..." most docs/tutorials still show. This
 # is a real security hardening (a renamed/transferred repo can't inherit
 # another repo's trust via name reuse), but it means a plain org/repo
@@ -70,11 +70,11 @@ resource "aws_iam_role" "grc_gate" {
 }
 
 # Scoped to exactly the resource types this stack's Terraform manages.
-# Do NOT attach AdministratorAccess — that's the GAP-07 mistake at the
+# Do NOT attach AdministratorAccess, that's the GAP-07 mistake at the
 # pipeline-identity level instead of the Lambda level.
 #
 # NOTE ON A REAL LIMIT OF IAM SCOPING HERE: this role provisions the
-# entire stack via `terraform apply`, including oidc-trust.tf itself —
+# entire stack via `terraform apply`, including oidc-trust.tf itself,
 # its own trust policy and this very permissions policy. That means
 # grc_gate can, in principle, modify its own permissions/trust boundary
 # if a merged change to main asked it to. No IAM policy on this role can
@@ -99,7 +99,7 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
           # enumerated list: the AWS provider's refresh cycle calls many
           # read-only APIs per resource (e.g. DescribeVpcAttribute for
           # aws_vpc, separate from DescribeVpcs) that aren't documented
-          # and vary by provider version. Discovered the hard way — the
+          # and vary by provider version. Discovered the hard way, the
           # first real pipeline run failed on a missing
           # ec2:DescribeVpcAttribute grant that a narrower list missed.
           "ec2:Describe*",
@@ -116,7 +116,7 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
           "ec2:CreateTags", "ec2:DeleteTags",
         ]
         # EC2 read/create actions on not-yet-existing resources generally
-        # cannot be scoped to a specific ARN — this is the standard AWS
+        # cannot be scoped to a specific ARN, this is the standard AWS
         # limitation, not a shortcut taken here.
         Resource = "*"
       },
@@ -256,7 +256,7 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
         Effect = "Allow"
         # A handful of List*/Describe* actions don't support resource-
         # level scoping at all (require Resource "*" specifically) even
-        # though most of their sibling actions on the same service do —
+        # though most of their sibling actions on the same service do,
         # nesting them inside an ARN-scoped statement above would
         # silently grant nothing for these specific calls. Kept separate
         # and explicit rather than folded into "*"-resource per-service
@@ -292,7 +292,7 @@ resource "aws_iam_role_policy" "grc_gate_evidence_upload" {
         # Same gotcha as the Lambda's data-plane calls (GAP-01/02):
         # the evidence vault is SSE-KMS encrypted with the same CMK, so
         # PutObject/GetObject need explicit KMS permissions beyond the
-        # S3 actions above — an S3-only grant isn't sufficient.
+        # S3 actions above, an S3-only grant isn't sufficient.
         Sid      = "EvidenceVaultKmsAccess"
         Effect   = "Allow"
         Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
@@ -303,7 +303,7 @@ resource "aws_iam_role_policy" "grc_gate_evidence_upload" {
 }
 
 # Access to the remote state backend created by terraform/bootstrap/
-# (a separate Terraform config — not this stack's resources, hence the
+# (a separate Terraform config, not this stack's resources, hence the
 # hardcoded names rather than resource references). Without this, CI's
 # `terraform init`/plan/apply can't read or lock the shared state.
 resource "aws_iam_role_policy" "grc_gate_backend_access" {

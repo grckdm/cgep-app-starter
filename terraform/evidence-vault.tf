@@ -1,8 +1,8 @@
 # terraform/evidence-vault.tf
 #
-# Object Lock evidence bucket — every signed pipeline run lands here.
+# Object Lock evidence bucket, every signed pipeline run lands here.
 # Adapted from the Lab 2.5 evidence-vault primitive: GOVERNANCE mode
-# (decision: friendlier for a 30-day project than COMPLIANCE — a
+# (decision: friendlier for a 30-day project than COMPLIANCE, a
 # privileged caller can still bypass the lock if you need to clean up;
 # defend this trade-off in WRITEUP.md), encrypted with the CMK from
 # kms.tf instead of SSE-S3.

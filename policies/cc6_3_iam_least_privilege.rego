@@ -17,7 +17,7 @@ package compliance.soc2.cc6_3_iam_least_privilege
 
 import rego.v1
 
-# KNOWN LIMITATION: same as cc6_7_s3_tls_only.rego — this policy's IAM
+# KNOWN LIMITATION: same as cc6_7_s3_tls_only.rego, this policy's IAM
 # statement Actions are static strings, but the policy also embeds
 # aws_dynamodb_table.intake.arn / aws_s3_bucket.uploads.arn, so the whole
 # jsonencode() string is "known after apply" (absent from planned_values)
@@ -34,7 +34,7 @@ deny contains msg if {
 	stmt.Effect == "Allow"
 	action := wildcard_action(stmt.Action)
 	msg := sprintf(
-		"[CC6.3] %s: statement grants wildcard action %q — use the specific actions the handler calls instead of a service-level wildcard.",
+		"[CC6.3] %s: statement grants wildcard action %q, use the specific actions the handler calls instead of a service-level wildcard.",
 		[r.address, action],
 	)
 }

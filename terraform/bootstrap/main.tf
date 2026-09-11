@@ -6,7 +6,7 @@
 # depends on to store its own state (chicken-and-egg), so this runs
 # once, manually, before the main stack's backend block is configured.
 #
-# This module's own state stays local — these resources change rarely
+# This module's own state stays local. These resources change rarely
 # (essentially never, after initial creation), and bootstrapping the
 # bootstrap's state into a remote backend has the same chicken-and-egg
 # problem one level up, with no benefit at this scale.

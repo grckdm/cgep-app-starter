@@ -2,12 +2,12 @@
 #
 # One workflow, five named steps, in order: Plan -> Policy check -> Apply
 # (merge to main only) -> Sign -> Upload. On a PR, only Plan and Policy
-# check run — that's the gate. On push to main (i.e. after a PR merges),
+# check run, that's the gate. On push to main (i.e. after a PR merges),
 # all five run, so a merge is what actually deploys and produces evidence.
 #
 # Repo variables this needs (Settings -> Secrets and variables -> Actions -> Variables):
-#   AWS_ROLE_ARN     — output of terraform/oidc-trust.tf (grc_gate_role_arn)
-#   EVIDENCE_VAULT   — output of terraform/evidence-vault.tf (evidence_vault_name)
+#   AWS_ROLE_ARN    , output of terraform/oidc-trust.tf (grc_gate_role_arn)
+#   EVIDENCE_VAULT  , output of terraform/evidence-vault.tf (evidence_vault_name)
 #
 # TODO once oidc-trust.tf's permissions policy is written: this workflow
 # can't apply anything until aws_iam_role.grc_gate actually has
