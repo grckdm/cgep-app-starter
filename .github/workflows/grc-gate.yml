@@ -1,0 +1,142 @@
+# .github/workflows/grc-gate.yml
+#
+# One workflow, five named steps, in order: Plan -> Policy check -> Apply
+# (merge to main only) -> Sign -> Upload. On a PR, only Plan and Policy
+# check run — that's the gate. On push to main (i.e. after a PR merges),
+# all five run, so a merge is what actually deploys and produces evidence.
+#
+# Repo variables this needs (Settings -> Secrets and variables -> Actions -> Variables):
+#   AWS_ROLE_ARN     — output of terraform/oidc-trust.tf (grc_gate_role_arn)
+#   EVIDENCE_VAULT   — output of terraform/evidence-vault.tf (evidence_vault_name)
+#
+# TODO once oidc-trust.tf's permissions policy is written: this workflow
+# can't apply anything until aws_iam_role.grc_gate actually has
+# permissions attached.
+
+name: grc-gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # required for AWS OIDC + Cosign keyless
+  contents: read
+  pull-requests: write
+
+env:
+  AWS_REGION: us-east-1
+  TF_WORKING_DIR: terraform
+
+jobs:
+  grc-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+          terraform_wrapper: false
+
+      - name: Install Conftest
+        run: |
+          curl -fsSL https://github.com/open-policy-agent/conftest/releases/download/v0.50.0/conftest_0.50.0_Linux_x86_64.tar.gz \
+            | tar -xz -C /usr/local/bin conftest
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.2.4'
+
+      # ---- Step 1: Plan ----------------------------------------------
+      - name: Plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform init -input=false
+          terraform validate
+          terraform plan -out=tfplan -input=false -no-color | tee plan.txt
+
+      # ---- Step 2: Policy check (fails closed on both PR and push) ---
+      - name: Policy check
+        id: policy_check
+        run: ./scripts/policy-gate.sh --workspace "$TF_WORKING_DIR" --policy policies
+
+      # ---- Step 3: Apply (merge to main only) -------------------------
+      - name: Apply
+        id: apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -auto-approve -input=false tfplan
+
+      # ---- Step 4: Sign evidence bundle --------------------------------
+      - name: Sign evidence bundle
+        id: sign
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/pipeline
+          cp "$TF_WORKING_DIR/plan.json" evidence/pipeline/plan.json
+          cp "$TF_WORKING_DIR/plan.txt"  evidence/pipeline/plan.txt
+
+          if command -v sha256sum >/dev/null 2>&1; then SHASUM="sha256sum"
+          else SHASUM="shasum -a 256"; fi
+
+          BUNDLE="evidence-${RUN_ID}-${SHA}.tar.gz"
+          ( cd evidence/pipeline && tar czf "../../${BUNDLE}" . )
+          $SHASUM "${BUNDLE}" | awk '{print $1}' > "${BUNDLE}.sha256"
+
+          cosign sign-blob --yes --bundle "${BUNDLE}.sig.bundle" "${BUNDLE}"
+
+          echo "bundle=${BUNDLE}" >> "$GITHUB_OUTPUT"
+
+      # ---- Step 5: Upload to evidence vault ----------------------------
+      - name: Upload to evidence vault
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          VAULT: ${{ vars.EVIDENCE_VAULT }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          BUNDLE: ${{ steps.sign.outputs.bundle }}
+        run: |
+          set -euo pipefail
+          KEY_PREFIX="runs/${RUN_ID}"
+          aws s3 cp "${BUNDLE}"            "s3://${VAULT}/${KEY_PREFIX}/${BUNDLE}"
+          aws s3 cp "${BUNDLE}.sha256"     "s3://${VAULT}/${KEY_PREFIX}/${BUNDLE}.sha256"
+          aws s3 cp "${BUNDLE}.sig.bundle" "s3://${VAULT}/${KEY_PREFIX}/${BUNDLE}.sig.bundle"
+
+          VERSION_ID=$(aws s3api head-object --bucket "${VAULT}" --key "${KEY_PREFIX}/${BUNDLE}" --query VersionId --output text)
+          cat > receipt.json <<EOF
+          {
+            "run_id": "${RUN_ID}",
+            "vault": "${VAULT}",
+            "bundle_key": "${KEY_PREFIX}/${BUNDLE}",
+            "version_id": "${VERSION_ID}",
+            "sha256": "$(cat ${BUNDLE}.sha256)",
+            "commit": "${SHA}"
+          }
+          EOF
+          aws s3 cp receipt.json "s3://${VAULT}/${KEY_PREFIX}/receipt.json"
+          mkdir -p evidence/pipeline
+          cp receipt.json evidence/pipeline/receipt.json
+
+      - name: Upload workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grc-evidence-${{ github.run_id }}
+          path: evidence/pipeline/
+          retention-days: 90

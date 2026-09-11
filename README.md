@@ -1,4 +1,42 @@
-# cgep-app-starter
+# cgep-capstone (fork of cgep-app-starter)
+
+> CGE-P capstone submission. Primary framework: **SOC 2 Type II**. Fork of
+> [`GRCEngClub/cgep-app-starter`](https://github.com/GRCEngClub/cgep-app-starter) —
+> the starter's workload (`terraform/main.tf`, `terraform/lambda/`) is unmodified;
+> the GRC layers wrapped around it are new.
+
+## Grader verification
+
+```bash
+# 1. Deploy gate (the starter workload, unmodified)
+make deploy AWS_PROFILE=<your-sandbox>
+make test   AWS_PROFILE=<your-sandbox>
+
+# 2. Policy suite
+opa test ./policies
+
+# 3. A specific pipeline run's evidence chain
+./scripts/verify-evidence.sh <run_id> --vault <evidence-vault-bucket-name>
+# expect: CHAIN INTACT for run <run_id>
+
+# 4. OSCAL
+cd .trestle-work && trestle validate -a component-definition -n acme-health-capstone
+```
+
+See `WRITEUP.md` for design decisions and control coverage.
+
+## New in this fork (the four CGE-P layers)
+
+| Layer | Where |
+|---|---|
+| Terraform GRC baseline | `terraform/kms.tf`, `evidence-vault.tf`, `cloudtrail.tf`, `oidc-trust.tf`, `hardening.tf` |
+| OPA policy suite (SOC 2) | `policies/*.rego` + `policies/tests/` |
+| GitHub Actions pipeline | `.github/workflows/grc-gate.yml` |
+| OSCAL component | `oscal/components/acme-health-capstone.json` + `oscal/profiles/` |
+
+---
+
+# cgep-app-starter (original README below)
 
 > Patient Intake API for "Acme Health". The deliberately-flawed workload your **CGE-P capstone** wraps with GRC controls.
 

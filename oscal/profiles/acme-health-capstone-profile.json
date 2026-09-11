@@ -1,0 +1,22 @@
+{
+  "profile": {
+    "uuid": "859b317d-b9f9-4c6a-8b2b-9bd44872de05",
+    "metadata": {
+      "title": "Acme Health capstone — SOC 2-mapped control selection",
+      "last-modified": "2026-09-11T00:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.1"
+    },
+    "imports": [
+      {
+        "href": "https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json",
+        "include-controls": [
+          {
+            "with-ids": ["sc-28", "sc-8", "cp-9", "sc-7", "ac-6"]
+          }
+        ]
+      }
+    ],
+    "merge": { "as-is": true }
+  }
+}

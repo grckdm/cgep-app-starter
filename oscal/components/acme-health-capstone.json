@@ -1,0 +1,117 @@
+{
+  "component-definition": {
+    "uuid": "19cc28ca-ff6c-491c-b670-a0bfafbefa4b",
+    "metadata": {
+      "title": "Acme Health Patient Intake — GRC-governed system",
+      "last-modified": "2026-09-11T00:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.2.1",
+      "parties": [
+        {
+          "uuid": "9fb39bcc-9f10-4b74-bc0b-b60619e4dbce",
+          "type": "organization",
+          "name": "grckdm"
+        }
+      ]
+    },
+    "components": [
+      {
+        "uuid": "def040a5-267d-44d6-bd8f-85e1ca45bca3",
+        "type": "software",
+        "title": "acme-health-patient-intake",
+        "description": "Acme Health's patient intake API (Lambda + API Gateway + DynamoDB + S3, handling PHI submissions) as deployed from the cgep-app-starter workload, wrapped with the GRC controls added in this repo: a customer-managed KMS key for encryption at rest, an Object-Lock evidence vault, a multi-region CloudTrail, and terraform/hardening.tf's remediation of GAP-01 through GAP-08 (SSE-KMS on S3 and DynamoDB, a deny-non-TLS bucket policy, S3 versioning, the Lambda relocated into the starter's private VPC subnets behind Gateway VPC endpoints, a DLQ and X-Ray tracing, least-privilege IAM scoping, and API Gateway access logging with throttling). A GitHub Actions workflow (.github/workflows/grc-gate.yml) plans, policy-checks (OPA/Conftest against policies/), applies on merge to main, then signs and uploads the plan as evidence.",
+        "purpose": "Patient intake API for Acme Health, governed for SOC 2 Type II.",
+        "responsible-roles": [
+          { "role-id": "provider", "party-uuids": ["9fb39bcc-9f10-4b74-bc0b-b60619e4dbce"] }
+        ],
+        "control-implementations": [
+          {
+            "uuid": "914e98c5-5369-4e92-b35e-ffab1f5e8574",
+            "source": "https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json",
+            "description": "AICPA does not publish an OSCAL TSC catalog, so this crosswalks each SOC 2 criterion this capstone addresses to the nearest NIST 800-53 Rev 5 base control: CC6.1 (encryption custody) to SC-28 (Protection of Information at Rest); CC6.7 (transmission security) to SC-8 (Transmission Confidentiality and Integrity); A1.2 (recoverability) to CP-9 (System Backup); CC6.6 (boundary protection) to SC-7 (Boundary Protection); CC6.3 (least privilege) to AC-6 (Least Privilege). Base controls were chosen over enhancements (e.g. SC-28(1)) to keep the crosswalk defensible without overclaiming enhancement-specific requirements this capstone doesn't fully implement (e.g. organization-wide key management procedures). See WRITEUP.md for the full defense of this mapping.",
+            "implemented-requirements": [
+              {
+                "uuid": "49e7fa7a-5ecc-4fe1-91d7-003716fcb169",
+                "control-id": "sc-28",
+                "description": "GAP-01 closed: aws_s3_bucket.uploads is encrypted with SSE-KMS referencing the capstone's customer-managed key (aws_kms_key.grc in kms.tf) instead of the AWS-owned SSE-S3 default, bringing key custody under the organization's control.",
+                "props": [
+                  { "name": "implementation-status", "value": "implemented" },
+                  { "name": "terraform-resource", "value": "aws_s3_bucket_server_side_encryption_configuration.uploads" },
+                  { "name": "soc2-criteria", "value": "CC6.1" }
+                ],
+                "links": [
+                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                ]
+              },
+              {
+                "uuid": "1703c147-82ed-4654-9ae4-1020a50c93c5",
+                "control-id": "sc-28",
+                "description": "GAP-02 closed: aws_dynamodb_table.intake's server_side_encryption is enabled with kms_key_arn pointing at aws_kms_key.grc (added via gap02_dynamodb_override.tf, since server_side_encryption is a nested attribute on the table resource rather than a standalone resource type), replacing the AWS-owned default key. Also required adding kms:Decrypt/kms:GenerateDataKey to the Lambda's IAM role (aws_iam_role_policy.lambda_kms_access) — a customer-managed key requires the calling principal to have explicit KMS permissions, which the AWS-owned-key default did not.",
+                "props": [
+                  { "name": "implementation-status", "value": "implemented" },
+                  { "name": "terraform-resource", "value": "aws_dynamodb_table.intake (gap02_dynamodb_override.tf)" },
+                  { "name": "soc2-criteria", "value": "CC6.1" }
+                ],
+                "links": [
+                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                ]
+              },
+              {
+                "uuid": "fa2bdadd-11e1-4571-80ad-93748f86ab32",
+                "control-id": "sc-8",
+                "description": "GAP-03 closed: aws_s3_bucket_policy.uploads adds a DenyInsecureTransport statement that denies s3:* whenever aws:SecureTransport is false, forcing all access to the uploads bucket over TLS.",
+                "props": [
+                  { "name": "implementation-status", "value": "implemented" },
+                  { "name": "terraform-resource", "value": "aws_s3_bucket_policy.uploads" },
+                  { "name": "soc2-criteria", "value": "CC6.7" }
+                ],
+                "links": [
+                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                ]
+              },
+              {
+                "uuid": "7b2341a0-70a0-4673-906b-c2cb8a4b56cb",
+                "control-id": "cp-9",
+                "description": "GAP-04 closed: aws_s3_bucket_versioning.uploads sets versioning_configuration.status to Enabled on the uploads bucket, so an accidental overwrite or deletion of a PHI attachment is recoverable from a prior object version rather than being permanently lost.",
+                "props": [
+                  { "name": "implementation-status", "value": "implemented" },
+                  { "name": "terraform-resource", "value": "aws_s3_bucket_versioning.uploads" },
+                  { "name": "soc2-criteria", "value": "A1.2" }
+                ],
+                "links": [
+                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                ]
+              },
+              {
+                "uuid": "747567b6-dbcc-4b89-af8e-72161cb56bd0",
+                "control-id": "sc-7",
+                "description": "GAP-05 closed: aws_lambda_function.intake's vpc_config (added via gap05_06_lambda_override.tf) places the Lambda's ENIs in the starter's private subnets behind a dedicated security group (aws_security_group.lambda, HTTPS egress only, no inbound), moving it out of the default Lambda environment and inside the VPC boundary. Because the private subnets had no route table at all, this required adding one (aws_route_table.private) plus Gateway VPC endpoints for S3 and DynamoDB (aws_vpc_endpoint.s3 / .dynamodb) so the relocated Lambda retains a route to those services without a NAT gateway, and attaching AWSLambdaVPCAccessExecutionRole to the Lambda's role for ENI management permissions.",
+                "props": [
+                  { "name": "implementation-status", "value": "implemented" },
+                  { "name": "terraform-resource", "value": "aws_lambda_function.intake vpc_config (gap05_06_lambda_override.tf); aws_route_table.private, aws_vpc_endpoint.s3, aws_vpc_endpoint.dynamodb, aws_security_group.lambda (hardening.tf)" },
+                  { "name": "soc2-criteria", "value": "CC6.6" }
+                ],
+                "links": [
+                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                ]
+              },
+              {
+                "uuid": "c2efb615-a019-4b93-917b-b72d83b6c89a",
+                "control-id": "ac-6",
+                "description": "GAP-07 closed: aws_iam_role_policy.lambda_inline (overridden in gap07_iam_override.tf) replaces the starter's dynamodb:* and s3:* wildcard actions with the specific actions handler.py actually calls — dynamodb:PutItem and s3:PutObject — scoped to the same resources the starter's policy already scoped to, so the Lambda's execution role holds only the permissions its code exercises.",
+                "props": [
+                  { "name": "implementation-status", "value": "implemented" },
+                  { "name": "terraform-resource", "value": "aws_iam_role_policy.lambda_inline (gap07_iam_override.tf)" },
+                  { "name": "soc2-criteria", "value": "CC6.3" }
+                ],
+                "links": [
+                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
