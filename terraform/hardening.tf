@@ -102,13 +102,10 @@ resource "aws_s3_bucket_policy" "uploads" {
 ######################################################################
 # GAP-04, S3 uploads bucket: no versioning.
 # SOC 2: A1.2
-######################################################################
-resource "aws_s3_bucket_versioning" "uploads" {
-  bucket = aws_s3_bucket.uploads.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
+#
+# DEMO: intentionally removed on this branch to show the grc-gate
+# policy check (a1_2_s3_versioning.rego) blocks the regression. Do not
+# merge this branch into main.
 
 ######################################################################
 # GAP-05, Lambda not deployed inside the starter's VPC.
