@@ -95,18 +95,25 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
         Sid    = "Ec2Vpc"
         Effect = "Allow"
         Action = [
-          "ec2:DescribeVpcs", "ec2:CreateVpc", "ec2:DeleteVpc", "ec2:ModifyVpcAttribute",
-          "ec2:DescribeSubnets", "ec2:CreateSubnet", "ec2:DeleteSubnet", "ec2:ModifySubnetAttribute",
-          "ec2:DescribeRouteTables", "ec2:CreateRouteTable", "ec2:DeleteRouteTable",
+          # Read actions are broadened to Describe*/Get* rather than an
+          # enumerated list: the AWS provider's refresh cycle calls many
+          # read-only APIs per resource (e.g. DescribeVpcAttribute for
+          # aws_vpc, separate from DescribeVpcs) that aren't documented
+          # and vary by provider version. Discovered the hard way — the
+          # first real pipeline run failed on a missing
+          # ec2:DescribeVpcAttribute grant that a narrower list missed.
+          "ec2:Describe*",
+          "ec2:CreateVpc", "ec2:DeleteVpc", "ec2:ModifyVpcAttribute",
+          "ec2:CreateSubnet", "ec2:DeleteSubnet", "ec2:ModifySubnetAttribute",
+          "ec2:CreateRouteTable", "ec2:DeleteRouteTable",
           "ec2:CreateRoute", "ec2:DeleteRoute", "ec2:AssociateRouteTable", "ec2:DisassociateRouteTable",
-          "ec2:DescribeInternetGateways", "ec2:CreateInternetGateway", "ec2:DeleteInternetGateway",
+          "ec2:CreateInternetGateway", "ec2:DeleteInternetGateway",
           "ec2:AttachInternetGateway", "ec2:DetachInternetGateway",
-          "ec2:DescribeVpcEndpoints", "ec2:CreateVpcEndpoint", "ec2:DeleteVpcEndpoints", "ec2:ModifyVpcEndpoint",
-          "ec2:DescribeSecurityGroups", "ec2:CreateSecurityGroup", "ec2:DeleteSecurityGroup",
+          "ec2:CreateVpcEndpoint", "ec2:DeleteVpcEndpoints", "ec2:ModifyVpcEndpoint",
+          "ec2:CreateSecurityGroup", "ec2:DeleteSecurityGroup",
           "ec2:AuthorizeSecurityGroupEgress", "ec2:RevokeSecurityGroupEgress",
           "ec2:AuthorizeSecurityGroupIngress", "ec2:RevokeSecurityGroupIngress",
-          "ec2:DescribeNetworkInterfaces", "ec2:DescribeAvailabilityZones",
-          "ec2:CreateTags", "ec2:DeleteTags", "ec2:DescribeTags",
+          "ec2:CreateTags", "ec2:DeleteTags",
         ]
         # EC2 read/create actions on not-yet-existing resources generally
         # cannot be scoped to a specific ARN — this is the standard AWS
@@ -117,10 +124,10 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
         Sid    = "Lambda"
         Effect = "Allow"
         Action = [
-          "lambda:CreateFunction", "lambda:GetFunction", "lambda:GetFunctionConfiguration",
-          "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction",
-          "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
-          "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags", "lambda:ListVersionsByFunction",
+          "lambda:Get*", "lambda:List*",
+          "lambda:CreateFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration",
+          "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission",
+          "lambda:TagResource", "lambda:UntagResource",
         ]
         Resource = "arn:aws:lambda:*:*:function:${local.name_prefix}-*"
       },
@@ -128,10 +135,10 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
         Sid    = "DynamoDb"
         Effect = "Allow"
         Action = [
-          "dynamodb:CreateTable", "dynamodb:DescribeTable", "dynamodb:UpdateTable", "dynamodb:DeleteTable",
-          "dynamodb:TagResource", "dynamodb:UntagResource", "dynamodb:ListTagsOfResource",
-          "dynamodb:DescribeTimeToLive", "dynamodb:UpdateTimeToLive",
-          "dynamodb:DescribeContinuousBackups", "dynamodb:UpdateContinuousBackups",
+          "dynamodb:Describe*", "dynamodb:List*",
+          "dynamodb:CreateTable", "dynamodb:UpdateTable", "dynamodb:DeleteTable",
+          "dynamodb:TagResource", "dynamodb:UntagResource", "dynamodb:UpdateTimeToLive",
+          "dynamodb:UpdateContinuousBackups",
         ]
         Resource = "arn:aws:dynamodb:*:*:table/${local.name_prefix}-*"
       },
@@ -139,13 +146,17 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
         Sid    = "S3BucketManagement"
         Effect = "Allow"
         Action = [
-          "s3:CreateBucket", "s3:DeleteBucket", "s3:ListBucket",
-          "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy",
-          "s3:GetBucketVersioning", "s3:PutBucketVersioning",
-          "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration",
-          "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock",
-          "s3:GetBucketObjectLockConfiguration", "s3:PutBucketObjectLockConfiguration",
-          "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:GetBucketLocation", "s3:GetBucketAcl",
+          # Same reasoning as Ec2Vpc: the (legacy-compat) aws_s3_bucket
+          # refresh path reads many sub-configurations (CORS, logging,
+          # lifecycle, replication, notification, ownership controls...)
+          # regardless of whether this stack sets them. Broadened after
+          # the first pipeline run failed on a missing s3:GetBucketCORS.
+          "s3:Get*", "s3:List*",
+          "s3:CreateBucket", "s3:DeleteBucket",
+          "s3:PutBucketPolicy", "s3:DeleteBucketPolicy",
+          "s3:PutBucketVersioning", "s3:PutEncryptionConfiguration",
+          "s3:PutBucketPublicAccessBlock", "s3:PutBucketObjectLockConfiguration",
+          "s3:PutBucketTagging",
         ]
         Resource = [
           "arn:aws:s3:::${local.name_prefix}-*",
@@ -155,15 +166,15 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
       {
         Sid      = "IamRoleManagement"
         Effect   = "Allow"
-        Action   = ["iam:CreateRole", "iam:GetRole", "iam:UpdateRole", "iam:DeleteRole", "iam:TagRole", "iam:UntagRole"]
+        Action   = ["iam:Get*", "iam:List*", "iam:CreateRole", "iam:UpdateRole", "iam:DeleteRole", "iam:TagRole", "iam:UntagRole"]
         Resource = "arn:aws:iam::*:role/${local.name_prefix}-*"
       },
       {
         Sid    = "IamRolePolicyManagement"
         Effect = "Allow"
         Action = [
-          "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies",
-          "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:ListAttachedRolePolicies",
+          "iam:PutRolePolicy", "iam:DeleteRolePolicy",
+          "iam:AttachRolePolicy", "iam:DetachRolePolicy",
         ]
         Resource = "arn:aws:iam::*:role/${local.name_prefix}-*"
       },
@@ -186,10 +197,9 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
         Sid    = "Kms"
         Effect = "Allow"
         Action = [
-          "kms:CreateKey", "kms:DescribeKey", "kms:EnableKeyRotation", "kms:GetKeyRotationStatus",
-          "kms:PutKeyPolicy", "kms:GetKeyPolicy", "kms:ScheduleKeyDeletion",
-          "kms:CreateAlias", "kms:DeleteAlias", "kms:ListAliases",
-          "kms:TagResource", "kms:ListResourceTags", "kms:UpdateKeyDescription",
+          "kms:Describe*", "kms:Get*", "kms:List*",
+          "kms:CreateKey", "kms:EnableKeyRotation", "kms:PutKeyPolicy", "kms:ScheduleKeyDeletion",
+          "kms:CreateAlias", "kms:DeleteAlias", "kms:TagResource", "kms:UpdateKeyDescription",
         ]
         # KMS key IDs are assigned by AWS at creation and can't be
         # predicted for a Resource ARN before the key exists.
@@ -199,10 +209,10 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
         Sid    = "CloudTrail"
         Effect = "Allow"
         Action = [
-          "cloudtrail:CreateTrail", "cloudtrail:DescribeTrails", "cloudtrail:GetTrailStatus",
-          "cloudtrail:StartLogging", "cloudtrail:StopLogging", "cloudtrail:UpdateTrail",
-          "cloudtrail:DeleteTrail", "cloudtrail:PutEventSelectors", "cloudtrail:GetEventSelectors",
-          "cloudtrail:AddTags", "cloudtrail:RemoveTags", "cloudtrail:ListTags",
+          "cloudtrail:Describe*", "cloudtrail:Get*", "cloudtrail:List*",
+          "cloudtrail:CreateTrail", "cloudtrail:StartLogging", "cloudtrail:StopLogging",
+          "cloudtrail:UpdateTrail", "cloudtrail:DeleteTrail", "cloudtrail:PutEventSelectors",
+          "cloudtrail:AddTags", "cloudtrail:RemoveTags",
         ]
         Resource = "arn:aws:cloudtrail:*:*:trail/${local.name_prefix}-*"
       },
@@ -219,16 +229,16 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
       {
         Sid      = "Sqs"
         Effect   = "Allow"
-        Action   = ["sqs:CreateQueue", "sqs:GetQueueAttributes", "sqs:SetQueueAttributes", "sqs:DeleteQueue", "sqs:TagQueue", "sqs:ListQueueTags"]
+        Action   = ["sqs:Get*", "sqs:List*", "sqs:CreateQueue", "sqs:SetQueueAttributes", "sqs:DeleteQueue", "sqs:TagQueue"]
         Resource = "arn:aws:sqs:*:*:${local.name_prefix}-*"
       },
       {
         Sid    = "CloudWatchLogs"
         Effect = "Allow"
         Action = [
-          "logs:CreateLogGroup", "logs:DescribeLogGroups", "logs:DeleteLogGroup", "logs:PutRetentionPolicy",
-          "logs:TagResource", "logs:ListTagsForResource",
-          "logs:PutResourcePolicy", "logs:DescribeResourcePolicies", "logs:DeleteResourcePolicy",
+          "logs:Describe*", "logs:Get*", "logs:List*",
+          "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy",
+          "logs:TagResource", "logs:PutResourcePolicy", "logs:DeleteResourcePolicy",
         ]
         # PutResourcePolicy/DescribeResourcePolicies (used by GAP-08's
         # apigw_access log resource policy) are account-scoped APIs with
@@ -239,6 +249,22 @@ resource "aws_iam_role_policy" "grc_gate_provisioning" {
         Sid      = "Sts"
         Effect   = "Allow"
         Action   = "sts:GetCallerIdentity"
+        Resource = "*"
+      },
+      {
+        Sid    = "AccountWideListDescribe"
+        Effect = "Allow"
+        # A handful of List*/Describe* actions don't support resource-
+        # level scoping at all (require Resource "*" specifically) even
+        # though most of their sibling actions on the same service do —
+        # nesting them inside an ARN-scoped statement above would
+        # silently grant nothing for these specific calls. Kept separate
+        # and explicit rather than folded into "*"-resource per-service
+        # statements above, so it's clear these are a distinct category.
+        Action = [
+          "cloudtrail:DescribeTrails", "cloudtrail:ListTrails",
+          "dynamodb:ListTables", "lambda:ListFunctions", "sqs:ListQueues", "s3:ListAllMyBuckets",
+        ]
         Resource = "*"
       },
     ]

@@ -63,6 +63,7 @@ jobs:
       - name: Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
+          set -o pipefail
           terraform init -input=false
           terraform validate
           terraform plan -out=tfplan -input=false -no-color | tee plan.txt
