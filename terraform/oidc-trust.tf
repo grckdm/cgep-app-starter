@@ -17,7 +17,11 @@ variable "github_org" {
 
 variable "github_repo" {
   type    = string
-  default = "cgep-capstone"
+  # The fork kept the original starter repo's name — only the local
+  # clone directory is "cgep-capstone". This must match the actual
+  # GitHub repo or the OIDC trust policy's `sub` condition never matches
+  # the token GitHub Actions sends, and AssumeRoleWithWebIdentity fails.
+  default = "cgep-app-starter"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
