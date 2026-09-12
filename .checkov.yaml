@@ -1,0 +1,27 @@
+# .checkov.yaml
+#
+# Only skips checks that are confirmed FALSE POSITIVES against this
+# repo's real deployed infrastructure, each with the evidence cited.
+# Everything else checkov flags is left as-is, on purpose: per the
+# capstone brief, "Honest gaps don't lose points. Hand-waving does." A
+# real, undocumented gap belongs in WRITEUP.md's trade-offs/what-I-
+# didn't-get-to sections, not suppressed here. See WRITEUP.md for the
+# gaps this project explicitly accepted (e.g. GAP-06's reserved
+# concurrency, GAP-08's WAF).
+#
+# Why these three specifically need a skip: checkov's static parser
+# does not implement Terraform's override-file merge convention (a
+# resource block in a file ending _override.tf merging into the
+# same-address resource in main.tf at plan/apply time). This repo uses
+# that convention deliberately (see hardening.tf's header comment) so
+# main.tf stays byte-identical to the starter. checkov evaluates
+# main.tf's aws_lambda_function.intake block in isolation and never
+# sees gap05_06_lambda_override.tf's additions, so it reports these as
+# missing even though `terraform show` and `aws lambda
+# get-function-configuration` against the real deployed function (see
+# capstone_project memory / WRITEUP.md's pipeline trace) confirm all
+# three are actually present.
+skip-check:
+  - CKV_AWS_117 # "Lambda function is configured inside a VPC" - added via gap05_06_lambda_override.tf's vpc_config, verified deployed.
+  - CKV_AWS_116 # "Lambda function is configured for a DLQ" - added via gap05_06_lambda_override.tf's dead_letter_config (aws_sqs_queue.intake_dlq), verified deployed.
+  - CKV_AWS_50  # "X-Ray tracing is enabled for Lambda" - added via gap05_06_lambda_override.tf's tracing_config, verified deployed.

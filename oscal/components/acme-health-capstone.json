@@ -3,7 +3,7 @@
     "uuid": "19cc28ca-ff6c-491c-b670-a0bfafbefa4b",
     "metadata": {
       "title": "Acme Health Patient Intake — GRC-governed system",
-      "last-modified": "2026-09-11T00:00:00Z",
+      "last-modified": "2026-09-12T00:00:00Z",
       "version": "1.0.0",
       "oscal-version": "1.2.1",
       "parties": [
@@ -40,7 +40,7 @@
                   { "name": "soc2-criteria", "value": "CC6.1" }
                 ],
                 "links": [
-                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                  { "rel": "evidence", "href": "s3://acme-health-intake-evidence-vault-7eeb10ce/runs/34629585788/evidence-34629585788-5de3c010381befb3f20e04018f262f0cbe5b6f62.tar.gz", "text": "Signed pipeline bundle from grc-gate.yml run 34629585788 (commit 5de3c01), containing the applied terraform plan. Verify with scripts/verify-evidence.sh 34629585788 --vault acme-health-intake-evidence-vault-7eeb10ce." }
                 ]
               },
               {
@@ -53,7 +53,7 @@
                   { "name": "soc2-criteria", "value": "CC6.1" }
                 ],
                 "links": [
-                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                  { "rel": "evidence", "href": "s3://acme-health-intake-evidence-vault-7eeb10ce/runs/34629585788/evidence-34629585788-5de3c010381befb3f20e04018f262f0cbe5b6f62.tar.gz", "text": "Signed pipeline bundle from grc-gate.yml run 34629585788 (commit 5de3c01), containing the applied terraform plan. Verify with scripts/verify-evidence.sh 34629585788 --vault acme-health-intake-evidence-vault-7eeb10ce." }
                 ]
               },
               {
@@ -66,7 +66,7 @@
                   { "name": "soc2-criteria", "value": "CC6.7" }
                 ],
                 "links": [
-                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                  { "rel": "evidence", "href": "s3://acme-health-intake-evidence-vault-7eeb10ce/runs/34629585788/evidence-34629585788-5de3c010381befb3f20e04018f262f0cbe5b6f62.tar.gz", "text": "Signed pipeline bundle from grc-gate.yml run 34629585788 (commit 5de3c01), containing the applied terraform plan. Verify with scripts/verify-evidence.sh 34629585788 --vault acme-health-intake-evidence-vault-7eeb10ce." }
                 ]
               },
               {
@@ -79,7 +79,7 @@
                   { "name": "soc2-criteria", "value": "A1.2" }
                 ],
                 "links": [
-                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                  { "rel": "evidence", "href": "s3://acme-health-intake-evidence-vault-7eeb10ce/runs/34629585788/evidence-34629585788-5de3c010381befb3f20e04018f262f0cbe5b6f62.tar.gz", "text": "Signed pipeline bundle from grc-gate.yml run 34629585788 (commit 5de3c01), containing the applied terraform plan. Verify with scripts/verify-evidence.sh 34629585788 --vault acme-health-intake-evidence-vault-7eeb10ce." }
                 ]
               },
               {
@@ -92,7 +92,7 @@
                   { "name": "soc2-criteria", "value": "CC6.6" }
                 ],
                 "links": [
-                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                  { "rel": "evidence", "href": "s3://acme-health-intake-evidence-vault-7eeb10ce/runs/34629585788/evidence-34629585788-5de3c010381befb3f20e04018f262f0cbe5b6f62.tar.gz", "text": "Signed pipeline bundle from grc-gate.yml run 34629585788 (commit 5de3c01), containing the applied terraform plan. Verify with scripts/verify-evidence.sh 34629585788 --vault acme-health-intake-evidence-vault-7eeb10ce." }
                 ]
               },
               {
@@ -105,7 +105,7 @@
                   { "name": "soc2-criteria", "value": "CC6.3" }
                 ],
                 "links": [
-                  { "rel": "evidence", "href": "urn:capstone:pending-first-pipeline-run", "text": "PENDING: replace with s3://<evidence_vault_name>/runs/<run_id>/evidence-<run_id>-<sha>.tar.gz once grc-gate.yml has run against main at least once." }
+                  { "rel": "evidence", "href": "s3://acme-health-intake-evidence-vault-7eeb10ce/runs/34629585788/evidence-34629585788-5de3c010381befb3f20e04018f262f0cbe5b6f62.tar.gz", "text": "Signed pipeline bundle from grc-gate.yml run 34629585788 (commit 5de3c01), containing the applied terraform plan. Verify with scripts/verify-evidence.sh 34629585788 --vault acme-health-intake-evidence-vault-7eeb10ce." }
                 ]
               }
             ]
