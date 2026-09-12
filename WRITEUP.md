@@ -198,11 +198,17 @@ correct-looking IAM policy will work.
 
 ## What I didn't get to
 
-- **OSCAL evidence links are still placeholders**
-  (`urn:capstone:pending-first-pipeline-run`) even though a real pipeline
-  run now exists and could be linked. I built the OSCAL layer before the
-  pipeline was proven working end-to-end, and haven't gone back to wire
-  the real S3 key in.
+- **No continuous monitoring or detection.** There's no CloudWatch
+  alarm, AWS Config rule, GuardDuty, or EventBridge rule anywhere in
+  this stack. CloudTrail logs every API call, but nothing consumes or
+  alerts on those logs, so drift or a misconfiguration introduced
+  outside Terraform (e.g. someone hand-editing a bucket policy in the
+  console) would go completely undetected until the next `terraform
+  plan` happened to catch the diff. This is the least mature layer of
+  the project and the one I'd build first with another sprint: a
+  CloudWatch metric filter + alarm on CloudTrail for IAM policy changes
+  to `grc_gate` would be a cheap, high-value first step, given that
+  role's self-modification risk named above.
 - **GAP-06 and GAP-08 have no policy-layer enforcement**: Terraform
   closes most of both (DLQ, X-Ray, access logging, throttling), but
   neither has a Rego rule, and GAP-06's reserved concurrency and GAP-08's
